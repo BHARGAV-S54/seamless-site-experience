@@ -2,12 +2,6 @@ import { GraduationCap, Home, BookOpen, MessageCircle, User, LogIn, LogOut } fro
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
   activeSection: string;
@@ -61,28 +55,7 @@ export function Header({ activeSection, onNavigate, user, onLogout }: HeaderProp
               </li>
             ))}
 
-            {user ? (
-              <li>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="gap-2 ml-2">
-                      <Avatar className="w-8 h-8 border-2 border-primary">
-                        <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
-                          {getInitials(user.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium">{user.name.split(" ")[0]}</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={onLogout} className="text-destructive cursor-pointer">
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Logout
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </li>
-            ) : (
+            {!user && (
               <li>
                 <Button
                   onClick={() => onNavigate("login")}
@@ -118,21 +91,8 @@ export function Header({ activeSection, onNavigate, user, onLogout }: HeaderProp
               </motion.button>
             </li>
           ))}
-          <li>
-            {user ? (
-              <motion.button
-                className="flex flex-col items-center gap-1 p-2"
-                onClick={onLogout}
-                whileTap={{ scale: 0.9 }}
-              >
-                <Avatar className="w-6 h-6 border border-primary">
-                  <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
-                    {getInitials(user.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-xs text-muted-foreground">Logout</span>
-              </motion.button>
-            ) : (
+          {!user && (
+            <li>
               <motion.button
                 className={`flex flex-col items-center gap-1 p-2 ${
                   activeSection === "login" ? "text-primary" : "text-muted-foreground"
@@ -143,8 +103,8 @@ export function Header({ activeSection, onNavigate, user, onLogout }: HeaderProp
                 <LogIn className="w-6 h-6" />
                 <span className="text-xs font-medium">Login</span>
               </motion.button>
-            )}
-          </li>
+            </li>
+          )}
         </ul>
       </nav>
     </>
