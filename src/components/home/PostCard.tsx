@@ -1,32 +1,91 @@
-import { motion } from "framer-motion";
-import { Heart, MessageCircle, Repeat, Send, MoreHorizontal, Play } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Heart, MessageCircle, Repeat, Send, MoreHorizontal, Play, Bookmark, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
-interface Post {
+export interface Post {
   id: string;
   type: "text" | "image" | "poll" | "reel";
   username: string;
   time: string;
   tag: string;
   content: string;
-  likes: string;
-  comments: string;
-  shares: string;
-  pollOptions?: { label: string; percent: number }[];
+  likes: number;
+  comments: Comment[];
+  shares: number;
+  pollOptions?: { label: string; percent: number; votes: number }[];
   gradient?: string;
   emoji?: string;
+  imageUrl?: string;
+  isLiked?: boolean;
+  isSaved?: boolean;
+}
+
+interface Comment {
+  id: string;
+  username: string;
+  text: string;
+  time: string;
+  likes: number;
 }
 
 interface PostCardProps {
   post: Post;
   index: number;
+  onLike: (postId: string) => void;
+  onComment: (postId: string, comment: string) => void;
+  onShare: (postId: string) => void;
+  onSave: (postId: string) => void;
+  onVote: (postId: string, optionIndex: number) => void;
+  onDelete?: (postId: string) => void;
 }
 
-export function PostCard({ post, index }: PostCardProps) {
+export function PostCard({ post, index, onLike, onComment, onShare, onSave, onVote, onDelete }: PostCardProps) {
+  const [showComments, setShowComments] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const [isLikeAnimating, setIsLikeAnimating] = useState(false);
+
   const initials = post.username.split("_")[0].slice(0, 2).toUpperCase();
+
+  const handleLike = () => {
+    setIsLikeAnimating(true);
+    onLike(post.id);
+    setTimeout(() => setIsLikeAnimating(false), 300);
+  };
+
+  const handleDoubleTapLike = () => {
+    if (!post.isLiked) {
+      handleLike();
+    }
+  };
+
+  const handleComment = () => {
+    if (!newComment.trim()) return;
+    onComment(post.id, newComment);
+    setNewComment("");
+  };
+
+  const handleShare = () => {
+    onShare(post.id);
+    navigator.clipboard.writeText(`Check out this post from ${post.username}!`);
+    toast.success("Link copied to clipboard!");
+  };
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000) return (num / 1000).toFixed(1) + "k";
+    return num.toString();
+  };
 
   if (post.type === "reel") {
     return (
@@ -34,6 +93,7 @@ export function PostCard({ post, index }: PostCardProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.1 }}
+        onDoubleClick={handleDoubleTapLike}
       >
         <Card className="border-0 shadow-card overflow-hidden aspect-[9/14] relative group cursor-pointer">
           <div
@@ -46,18 +106,45 @@ export function PostCard({ post, index }: PostCardProps) {
             )}
           </div>
 
+          {/* Like animation */}
+          <AnimatePresence>
+            {isLikeAnimating && (
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1.5, opacity: 1 }}
+                exit={{ scale: 2, opacity: 0 }}
+                className="absolute inset-0 flex items-center justify-center z-10"
+              >
+                <Heart className="w-20 h-20 text-white fill-white" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Reel Actions */}
           <div className="absolute right-3 bottom-28 flex flex-col gap-5 items-center">
-            <button className="flex flex-col items-center text-white">
-              <Heart className="w-6 h-6" />
-              <span className="text-xs mt-1">{post.likes}</span>
-            </button>
-            <button className="flex flex-col items-center text-white">
+            <motion.button 
+              className="flex flex-col items-center text-white"
+              onClick={handleLike}
+              whileTap={{ scale: 0.9 }}
+            >
+              <Heart className={`w-6 h-6 ${post.isLiked ? "fill-red-500 text-red-500" : ""}`} />
+              <span className="text-xs mt-1">{formatNumber(post.likes)}</span>
+            </motion.button>
+            <button 
+              className="flex flex-col items-center text-white"
+              onClick={() => setShowComments(true)}
+            >
               <MessageCircle className="w-6 h-6" />
-              <span className="text-xs mt-1">{post.comments}</span>
+              <span className="text-xs mt-1">{post.comments.length}</span>
             </button>
-            <button className="flex flex-col items-center text-white">
+            <button className="flex flex-col items-center text-white" onClick={handleShare}>
               <Send className="w-6 h-6" />
+            </button>
+            <button 
+              className="flex flex-col items-center text-white"
+              onClick={() => onSave(post.id)}
+            >
+              <Bookmark className={`w-6 h-6 ${post.isSaved ? "fill-white" : ""}`} />
             </button>
           </div>
 
@@ -84,8 +171,23 @@ export function PostCard({ post, index }: PostCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
+      onDoubleClick={handleDoubleTapLike}
     >
-      <Card className="border-0 shadow-card overflow-hidden">
+      <Card className="border-0 shadow-card overflow-hidden relative">
+        {/* Like animation */}
+        <AnimatePresence>
+          {isLikeAnimating && (
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1.2, opacity: 1 }}
+              exit={{ scale: 1.5, opacity: 0 }}
+              className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
+            >
+              <Heart className="w-16 h-16 text-red-500 fill-red-500" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <CardContent className="p-0">
           {/* Header */}
           <div className="flex items-center justify-between p-4">
@@ -100,9 +202,32 @@ export function PostCard({ post, index }: PostCardProps) {
                 <p className="text-xs text-muted-foreground">{post.time}</p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onSave(post.id)}>
+                  <Bookmark className="w-4 h-4 mr-2" />
+                  {post.isSaved ? "Unsave" : "Save"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleShare}>
+                  <Send className="w-4 h-4 mr-2" />
+                  Share
+                </DropdownMenuItem>
+                {onDelete && (
+                  <DropdownMenuItem 
+                    onClick={() => onDelete(post.id)}
+                    className="text-destructive"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Content */}
@@ -111,7 +236,15 @@ export function PostCard({ post, index }: PostCardProps) {
               {post.tag}
             </Badge>
 
-            {post.type === "image" && (
+            {post.type === "image" && post.imageUrl && (
+              <img 
+                src={post.imageUrl} 
+                alt="Post" 
+                className="w-full rounded-xl mb-3 max-h-[400px] object-cover"
+              />
+            )}
+
+            {post.type === "image" && !post.imageUrl && (
               <div className="w-full aspect-video bg-muted rounded-xl mb-3 flex items-center justify-center text-muted-foreground">
                 📸 Image Post
               </div>
@@ -122,39 +255,126 @@ export function PostCard({ post, index }: PostCardProps) {
             {post.type === "poll" && post.pollOptions && (
               <div className="mt-3 space-y-2">
                 {post.pollOptions.map((option, i) => (
-                  <div key={i} className="flex items-center gap-3 p-2 bg-muted rounded-lg">
-                    <span className="text-sm flex-shrink-0 w-20">{option.label}</span>
-                    <div className="flex-1 h-1.5 bg-muted-foreground/20 rounded-full overflow-hidden">
-                      <div
-                        className="h-full gradient-primary rounded-full"
-                        style={{ width: `${option.percent}%` }}
-                      />
+                  <motion.button
+                    key={i}
+                    className="w-full flex items-center gap-3 p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors text-left"
+                    onClick={() => onVote(post.id, i)}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <span className="text-sm flex-1">{option.label}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 h-1.5 bg-muted-foreground/20 rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full gradient-primary rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${option.percent}%` }}
+                          transition={{ duration: 0.5 }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold text-primary w-10 text-right">
+                        {option.percent}%
+                      </span>
                     </div>
-                    <span className="text-xs font-semibold text-primary">{option.percent}%</span>
-                  </div>
+                  </motion.button>
                 ))}
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  {post.pollOptions.reduce((acc, o) => acc + o.votes, 0)} votes
+                </p>
               </div>
             )}
           </div>
 
           {/* Actions */}
           <div className="flex items-center justify-around px-4 py-3 border-t border-border">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary gap-1.5">
-              <Heart className="w-4 h-4" />
-              {post.likes}
-            </Button>
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary gap-1.5">
+            <motion.div whileTap={{ scale: 0.9 }}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className={`gap-1.5 ${post.isLiked ? "text-red-500" : "text-muted-foreground hover:text-primary"}`}
+                onClick={handleLike}
+              >
+                <Heart className={`w-4 h-4 ${post.isLiked ? "fill-red-500" : ""}`} />
+                {formatNumber(post.likes)}
+              </Button>
+            </motion.div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-muted-foreground hover:text-primary gap-1.5"
+              onClick={() => setShowComments(!showComments)}
+            >
               <MessageCircle className="w-4 h-4" />
-              {post.comments}
+              {post.comments.length}
             </Button>
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary gap-1.5">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-muted-foreground hover:text-primary gap-1.5"
+              onClick={handleShare}
+            >
               <Repeat className="w-4 h-4" />
-              {post.shares}
+              {formatNumber(post.shares)}
             </Button>
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
-              <Send className="w-4 h-4" />
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className={`${post.isSaved ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+              onClick={() => onSave(post.id)}
+            >
+              <Bookmark className={`w-4 h-4 ${post.isSaved ? "fill-primary" : ""}`} />
             </Button>
           </div>
+
+          {/* Comments Section */}
+          <AnimatePresence>
+            {showComments && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="border-t border-border overflow-hidden"
+              >
+                <div className="p-4 space-y-3 max-h-[200px] overflow-y-auto">
+                  {post.comments.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-2">
+                      No comments yet. Be the first to comment!
+                    </p>
+                  ) : (
+                    post.comments.map((comment) => (
+                      <div key={comment.id} className="flex gap-2">
+                        <Avatar className="w-7 h-7">
+                          <AvatarFallback className="text-[10px] bg-muted">
+                            {comment.username.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 bg-muted rounded-xl px-3 py-2">
+                          <p className="text-xs font-semibold">{comment.username}</p>
+                          <p className="text-sm">{comment.text}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="p-3 flex gap-2 bg-muted/50">
+                  <Input
+                    placeholder="Write a comment..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && handleComment()}
+                    className="flex-1 h-9 text-sm"
+                  />
+                  <Button 
+                    size="sm" 
+                    className="gradient-primary text-primary-foreground"
+                    onClick={handleComment}
+                    disabled={!newComment.trim()}
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
     </motion.div>
