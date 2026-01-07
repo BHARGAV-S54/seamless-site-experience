@@ -69,7 +69,7 @@ const Index = () => {
       case "social":
         return <SocialPage />;
       case "profile":
-        return <ProfilePage user={user} onEditProfile={() => {}} />;
+        return <ProfilePage user={user} onEditProfile={() => {}} onLogout={handleLogout} />;
       default:
         return <HomePage userName={user?.name} />;
     }
