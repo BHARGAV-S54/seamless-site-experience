@@ -11,6 +11,7 @@ import { AIChatbot } from "@/components/chat/AIChatbot";
 interface User {
   name: string;
   email: string;
+  role: string;
 }
 
 const pageVariants = {

@@ -1,19 +1,27 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { GraduationCap, Eye, EyeOff } from "lucide-react";
+import { GraduationCap, Eye, EyeOff, User, BookOpen, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface LoginPageProps {
-  onLogin: (user: { name: string; email: string }) => void;
+  onLogin: (user: { name: string; email: string; role: string }) => void;
   onNavigate: (section: string) => void;
 }
 
 export function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
   const [isSignup, setIsSignup] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState<string>("student");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -41,6 +49,7 @@ export function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
     onLogin({
       name: formData.name || formData.email.split("@")[0],
       email: formData.email,
+      role: role,
     });
     onNavigate("home");
   };
@@ -106,6 +115,36 @@ export function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Role Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="role">I am a</Label>
+                  <Select value={role} onValueChange={setRole}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select your role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="student">
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4" />
+                          <span>Student</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="educator">
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="w-4 h-4" />
+                          <span>Educator</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="admin">
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-4 h-4" />
+                          <span>Admin</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {isSignup && (
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
