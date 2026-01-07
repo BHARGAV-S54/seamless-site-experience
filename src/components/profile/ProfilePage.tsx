@@ -1,28 +1,19 @@
 import { motion } from "framer-motion";
-import { Copy, History, Crown } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Copy, Crown } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DashboardTab } from "./DashboardTab";
+import { AccountTab } from "./AccountTab";
 
 interface ProfilePageProps {
   user: { name: string; email: string } | null;
   onEditProfile: () => void;
+  onLogout?: () => void;
 }
 
-const stats = [
-  { label: "GPA (KD)", value: "3.8", sub: "Top 5%" },
-  { label: "Accuracy", value: "92%", sub: "Quiz Avg" },
-  { label: "Matches", value: "42", sub: "Classes" },
-];
-
-const matches = [
-  { id: 1, name: "Computer Networks Quiz", type: "Ranked • Solo", score: "28/30", result: "win", badge: "MVP" },
-  { id: 2, name: "Data Structures Lab", type: "Casual • Team", score: "B+", result: "draw", badge: "Assist King" },
-  { id: 3, name: "Linear Algebra Final", type: "Tournament Mode", score: "95%", result: "win", badge: "Headshot" },
-  { id: 4, name: "Physics Assignment", type: "Timed Event", score: "C", result: "loss", badge: "Defeated" },
-];
-
-export function ProfilePage({ user, onEditProfile }: ProfilePageProps) {
+export function ProfilePage({ user, onEditProfile, onLogout }: ProfilePageProps) {
   const userName = user?.name || "Student";
   const initials = userName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
@@ -92,90 +83,25 @@ export function ProfilePage({ user, onEditProfile }: ProfilePageProps) {
           </Card>
         </motion.div>
 
-        {/* Stats Dashboard */}
-        <div className="space-y-5">
-          {/* Overview Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <Card className="border-0 shadow-card">
-              <CardContent className="p-6">
-                <div className="grid grid-cols-3 gap-4">
-                  {stats.map((stat, index) => (
-                    <motion.div
-                      key={stat.label}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.2 + index * 0.1 }}
-                      className={`text-center ${index < 2 ? "border-r border-border" : ""}`}
-                    >
-                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                        {stat.label}
-                      </p>
-                      <p className="text-3xl font-black text-primary">{stat.value}</p>
-                      <p className="text-xs text-muted-foreground">{stat.sub}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Match History */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Card className="border-0 shadow-card">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg uppercase tracking-wide">
-                  <History className="w-5 h-5" /> Recent Battles
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1">
-                {matches.map((match, index) => (
-                  <motion.div
-                    key={match.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + index * 0.1 }}
-                    className="flex items-center gap-4 p-3 hover:bg-muted/50 rounded-lg transition-colors"
-                  >
-                    <div
-                      className={`w-1 h-10 rounded-full ${
-                        match.result === "win"
-                          ? "bg-success shadow-[0_0_8px_hsl(var(--success))]"
-                          : match.result === "draw"
-                          ? "bg-warning"
-                          : "bg-destructive"
-                      }`}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm truncate">{match.name}</p>
-                      <p className="text-xs text-muted-foreground">{match.type}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-black text-lg">{match.score}</p>
-                      <Badge
-                        variant="secondary"
-                        className={`text-[10px] ${
-                          match.badge === "MVP" || match.badge === "Headshot"
-                            ? "bg-gradient-to-r from-game-gold to-orange-500 text-white border-0"
-                            : ""
-                        }`}
-                      >
-                        {match.badge}
-                      </Badge>
-                    </div>
-                  </motion.div>
-                ))}
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
+        {/* Tabs Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Tabs defaultValue="dashboard" className="w-full">
+            <TabsList className="w-full grid grid-cols-2 mb-6">
+              <TabsTrigger value="dashboard" className="font-semibold">Dashboard</TabsTrigger>
+              <TabsTrigger value="account" className="font-semibold">Account</TabsTrigger>
+            </TabsList>
+            <TabsContent value="dashboard">
+              <DashboardTab />
+            </TabsContent>
+            <TabsContent value="account">
+              <AccountTab onLogout={onLogout || (() => {})} />
+            </TabsContent>
+          </Tabs>
+        </motion.div>
       </div>
     </div>
   );
