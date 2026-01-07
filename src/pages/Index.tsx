@@ -7,6 +7,8 @@ import { LearnPage } from "@/components/learn/LearnPage";
 import { SocialPage } from "@/components/social/SocialPage";
 import { ProfilePage } from "@/components/profile/ProfilePage";
 import { AIChatbot } from "@/components/chat/AIChatbot";
+import { EducatorDashboard } from "@/components/educator/EducatorDashboard";
+import { AdminDashboard } from "@/components/admin/AdminDashboard";
 
 interface User {
   name: string;
@@ -60,6 +62,15 @@ const Index = () => {
   };
 
   const renderSection = () => {
+    // Role-based routing for educator and admin
+    if (user?.role === "educator") {
+      return <EducatorDashboard user={user} onLogout={handleLogout} />;
+    }
+    if (user?.role === "admin") {
+      return <AdminDashboard user={user} onLogout={handleLogout} />;
+    }
+
+    // Student routes
     switch (activeSection) {
       case "login":
         return <LoginPage onLogin={handleLogin} onNavigate={handleNavigate} />;
@@ -78,8 +89,8 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header - always visible except on login for mobile */}
-      {(activeSection !== "login" || user) && (
+      {/* Header - visible only for students */}
+      {user?.role === "student" && activeSection !== "login" && (
         <Header
           activeSection={activeSection}
           onNavigate={handleNavigate}
@@ -89,7 +100,7 @@ const Index = () => {
       )}
 
       {/* Main Content */}
-      <main className={`${activeSection !== "login" ? "pt-0 md:pt-20 pb-20 md:pb-4" : ""}`}>
+      <main className={`${user?.role === "student" && activeSection !== "login" ? "pt-0 md:pt-20 pb-20 md:pb-4" : ""}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeSection}
@@ -104,8 +115,8 @@ const Index = () => {
         </AnimatePresence>
       </main>
 
-      {/* AI Chatbot - visible when logged in */}
-      {user && activeSection !== "login" && <AIChatbot />}
+      {/* AI Chatbot - visible only for students when logged in */}
+      {user && user.role === "student" && activeSection !== "login" && <AIChatbot />}
     </div>
   );
 };
