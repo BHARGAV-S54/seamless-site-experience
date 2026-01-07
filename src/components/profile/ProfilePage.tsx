@@ -53,25 +53,6 @@ export function ProfilePage({ user, onEditProfile, onLogout }: ProfilePageProps)
                 UID: 202394821 <Copy className="w-3 h-3" />
               </button>
 
-              {/* XP Bar */}
-              <div className="mt-5 text-left">
-                <div className="flex justify-between text-xs font-semibold text-gray-300 mb-1">
-                  <span>LVL 14 (Junior Year)</span>
-                  <span>XP: 3450/4000</span>
-                </div>
-                <div className="h-2 bg-game-dark rounded-full overflow-hidden border border-gray-700">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-game-gold to-orange-500"
-                    initial={{ width: 0 }}
-                    animate={{ width: "75%" }}
-                    transition={{ duration: 1, delay: 0.3 }}
-                  />
-                </div>
-              </div>
-
-              <p className="mt-5 text-sm text-gray-400 italic border-t border-white/10 pt-4">
-                "Aiming for that 4.0 GPA Headshot. Coffee is my mana."
-              </p>
 
               <Button
                 className="w-full mt-5 gradient-primary text-primary-foreground font-semibold"
