@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, ImageIcon, Pencil, Trash2, X, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,9 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { getUserPosts, updateUserPost, deleteUserPost } from "@/lib/postsStore";
-import { emitPostsUpdated, onPostsUpdated } from "@/lib/postEvents";
-import { Post } from "@/components/home/PostCard";
+import { usePosts, Post } from "@/hooks/usePosts";
 import { toast } from "sonner";
 
 interface MyPostsTabProps {
@@ -31,39 +29,28 @@ interface MyPostsTabProps {
 }
 
 export function MyPostsTab({ userName = "Student" }: MyPostsTabProps) {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const { getUserPosts, updatePost, deletePost } = usePosts();
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [deletePostId, setDeletePostId] = useState<string | null>(null);
 
+  const posts = getUserPosts();
   const initials = userName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-
-  // Load posts and listen for updates
-  useEffect(() => {
-    const syncPosts = () => setPosts(getUserPosts());
-    syncPosts();
-    return onPostsUpdated(syncPosts);
-  }, []);
 
   const handleEdit = (post: Post) => {
     setEditingPostId(post.id);
     setEditContent(post.content);
   };
 
-  const handleSaveEdit = (postId: string) => {
+  const handleSaveEdit = async (postId: string) => {
     if (!editContent.trim()) {
       toast.error("Post content cannot be empty");
       return;
     }
     
-    updateUserPost(postId, { content: editContent });
-    setPosts(posts.map(p => 
-      p.id === postId ? { ...p, content: editContent } : p
-    ));
+    await updatePost(postId, editContent);
     setEditingPostId(null);
     setEditContent("");
-    emitPostsUpdated();
-    toast.success("Post updated!");
   };
 
   const handleCancelEdit = () => {
@@ -71,14 +58,10 @@ export function MyPostsTab({ userName = "Student" }: MyPostsTabProps) {
     setEditContent("");
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deletePostId) return;
-    
-    deleteUserPost(deletePostId);
-    setPosts(posts.filter(p => p.id !== deletePostId));
+    await deletePost(deletePostId);
     setDeletePostId(null);
-    emitPostsUpdated();
-    toast.success("Post deleted!");
   };
 
   if (posts.length === 0) {

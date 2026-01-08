@@ -1,29 +1,17 @@
-import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bookmark, Heart, MessageCircle, Repeat, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Post } from "@/components/home/PostCard";
-import { getSavedPosts, unsavePost } from "@/lib/savedPostsStore";
-import { emitSavedPostsUpdated, onSavedPostsUpdated } from "@/lib/postEvents";
-import { toast } from "sonner";
+import { usePosts } from "@/hooks/usePosts";
 
 export function SavedPostsTab() {
-  const [posts, setPosts] = useState<Post[]>([]);
-
-  useEffect(() => {
-    const syncPosts = () => setPosts(getSavedPosts());
-    syncPosts();
-    return onSavedPostsUpdated(syncPosts);
-  }, []);
+  const { getSavedPosts, toggleSave } = usePosts();
+  const posts = getSavedPosts();
 
   const handleUnsave = (postId: string) => {
-    unsavePost(postId);
-    setPosts(posts.filter(p => p.id !== postId));
-    emitSavedPostsUpdated();
-    toast.success("Post removed from saved");
+    toggleSave(postId);
   };
 
   const formatNumber = (num: number) => {
