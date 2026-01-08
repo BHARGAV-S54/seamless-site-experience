@@ -7,6 +7,7 @@ import { TrendingSidebar } from "./TrendingSidebar";
 import { SearchBar } from "./SearchBar";
 import { toast } from "sonner";
 import { getUserPosts, saveUserPost, deleteUserPost } from "@/lib/postsStore";
+import { toggleSavePost } from "@/lib/savedPostsStore";
 
 const initialPosts: Post[] = [
   {
@@ -193,7 +194,7 @@ export function HomePage({ userName = "Student" }: HomePageProps) {
   const handleSave = (postId: string) => {
     setPosts(posts.map(post => {
       if (post.id === postId) {
-        const isSaved = !post.isSaved;
+        const isSaved = toggleSavePost(post);
         toast.success(isSaved ? "Post saved!" : "Post unsaved");
         return { ...post, isSaved };
       }
