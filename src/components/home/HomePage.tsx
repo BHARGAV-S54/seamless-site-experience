@@ -4,6 +4,7 @@ import { StoriesBar } from "./StoriesBar";
 import { PostComposer, NewPost } from "./PostComposer";
 import { PostCard, Post } from "./PostCard";
 import { TrendingSidebar } from "./TrendingSidebar";
+import { SearchBar } from "./SearchBar";
 import { toast } from "sonner";
 
 const initialPosts: Post[] = [
@@ -213,6 +214,10 @@ export function HomePage({ userName = "Student" }: HomePageProps) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="mb-6">
+        <SearchBar />
+      </div>
+
       <StoriesBar />
 
       <div className="mt-6 mb-6">
