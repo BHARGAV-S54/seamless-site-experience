@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { 
-  LogOut, GraduationCap, Award, Medal, FileCheck, 
+  GraduationCap, Award, Medal, FileCheck, 
   School, Building2, Calendar, MapPin, ExternalLink 
 } from "lucide-react";
 
 interface AccountTabProps {
-  onLogout: () => void;
+  onLogout?: () => void;
 }
 
 const previousEducation = [
@@ -242,21 +242,6 @@ export function AccountTab({ onLogout }: AccountTabProps) {
         </Card>
       </motion.div>
 
-      {/* Logout Button */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        <Button 
-          variant="destructive" 
-          className="w-full" 
-          onClick={onLogout}
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          Logout
-        </Button>
-      </motion.div>
     </div>
   );
 }

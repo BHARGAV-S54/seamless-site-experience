@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Copy, Crown } from "lucide-react";
+import { Copy, Crown, LogOut } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +62,16 @@ export function ProfilePage({ user, onEditProfile, onLogout }: ProfilePageProps)
               >
                 Edit Profile
               </Button>
+              {onLogout && (
+                <Button
+                  variant="destructive"
+                  className="w-full mt-3"
+                  onClick={onLogout}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              )}
             </CardContent>
           </Card>
         </motion.div>
