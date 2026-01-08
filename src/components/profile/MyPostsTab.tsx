@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { getUserPosts, updateUserPost, deleteUserPost } from "@/lib/postsStore";
+import { emitPostsUpdated, onPostsUpdated } from "@/lib/postEvents";
 import { Post } from "@/components/home/PostCard";
 import { toast } from "sonner";
 
@@ -37,10 +38,11 @@ export function MyPostsTab({ userName = "Student" }: MyPostsTabProps) {
 
   const initials = userName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
-  // Load posts from localStorage
+  // Load posts and listen for updates
   useEffect(() => {
-    const userPosts = getUserPosts();
-    setPosts(userPosts);
+    const syncPosts = () => setPosts(getUserPosts());
+    syncPosts();
+    return onPostsUpdated(syncPosts);
   }, []);
 
   const handleEdit = (post: Post) => {
@@ -60,6 +62,7 @@ export function MyPostsTab({ userName = "Student" }: MyPostsTabProps) {
     ));
     setEditingPostId(null);
     setEditContent("");
+    emitPostsUpdated();
     toast.success("Post updated!");
   };
 
@@ -74,6 +77,7 @@ export function MyPostsTab({ userName = "Student" }: MyPostsTabProps) {
     deleteUserPost(deletePostId);
     setPosts(posts.filter(p => p.id !== deletePostId));
     setDeletePostId(null);
+    emitPostsUpdated();
     toast.success("Post deleted!");
   };
 
