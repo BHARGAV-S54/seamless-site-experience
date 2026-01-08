@@ -7,7 +7,8 @@ import { TrendingSidebar } from "./TrendingSidebar";
 import { SearchBar } from "./SearchBar";
 import { toast } from "sonner";
 import { getUserPosts, saveUserPost, deleteUserPost } from "@/lib/postsStore";
-import { toggleSavePost } from "@/lib/savedPostsStore";
+import { toggleSavePost, isPostSaved } from "@/lib/savedPostsStore";
+import { emitPostsUpdated, emitSavedPostsUpdated, onPostsUpdated, onSavedPostsUpdated } from "@/lib/postEvents";
 
 const initialPosts: Post[] = [
   {
@@ -114,10 +115,26 @@ export function HomePage({ userName = "Student" }: HomePageProps) {
     return [...userPosts, ...initialPosts];
   });
 
-  // Re-sync with localStorage when component mounts
+  // Sync posts with localStorage and listen for updates
   useEffect(() => {
-    const userPosts = getUserPosts();
-    setPosts([...userPosts, ...initialPosts]);
+    const syncPosts = () => {
+      const userPosts = getUserPosts();
+      const allPosts = [...userPosts, ...initialPosts].map(post => ({
+        ...post,
+        isSaved: isPostSaved(post.id),
+      }));
+      setPosts(allPosts);
+    };
+
+    syncPosts();
+    
+    const unsubscribePosts = onPostsUpdated(syncPosts);
+    const unsubscribeSaved = onSavedPostsUpdated(syncPosts);
+    
+    return () => {
+      unsubscribePosts();
+      unsubscribeSaved();
+    };
   }, []);
 
   const handleNewPost = (newPost: NewPost) => {
@@ -140,9 +157,10 @@ export function HomePage({ userName = "Student" }: HomePageProps) {
       isLiked: false,
       isSaved: false,
     };
-    // Save to localStorage
+    // Save to localStorage and emit event
     saveUserPost(post);
     setPosts([post, ...posts]);
+    emitPostsUpdated();
     toast.success("Post shared successfully! 🎉");
   };
 
@@ -195,6 +213,7 @@ export function HomePage({ userName = "Student" }: HomePageProps) {
     setPosts(posts.map(post => {
       if (post.id === postId) {
         const isSaved = toggleSavePost(post);
+        emitSavedPostsUpdated();
         toast.success(isSaved ? "Post saved!" : "Post unsaved");
         return { ...post, isSaved };
       }
@@ -224,6 +243,7 @@ export function HomePage({ userName = "Student" }: HomePageProps) {
   const handleDelete = (postId: string) => {
     deleteUserPost(postId);
     setPosts(posts.filter(post => post.id !== postId));
+    emitPostsUpdated();
     toast.success("Post deleted");
   };
 

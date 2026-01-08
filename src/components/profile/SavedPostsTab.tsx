@@ -7,18 +7,22 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Post } from "@/components/home/PostCard";
 import { getSavedPosts, unsavePost } from "@/lib/savedPostsStore";
+import { emitSavedPostsUpdated, onSavedPostsUpdated } from "@/lib/postEvents";
 import { toast } from "sonner";
 
 export function SavedPostsTab() {
   const [posts, setPosts] = useState<Post[]>([]);
 
   useEffect(() => {
-    setPosts(getSavedPosts());
+    const syncPosts = () => setPosts(getSavedPosts());
+    syncPosts();
+    return onSavedPostsUpdated(syncPosts);
   }, []);
 
   const handleUnsave = (postId: string) => {
     unsavePost(postId);
     setPosts(posts.filter(p => p.id !== postId));
+    emitSavedPostsUpdated();
     toast.success("Post removed from saved");
   };
 
