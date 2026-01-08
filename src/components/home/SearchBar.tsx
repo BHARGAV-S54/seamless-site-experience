@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, User, Hash, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ export function SearchBar() {
   const [isOpen, setIsOpen] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -72,8 +74,12 @@ export function SearchBar() {
   };
 
   const handleResultClick = (result: SearchResult) => {
-    console.log("Selected:", result);
-    setQuery(result.name);
+    if (result.type === "user") {
+      const username = result.name.toLowerCase().replace(/_/g, "-");
+      navigate(`/user/${username}`);
+    } else {
+      setQuery(result.name);
+    }
     setIsOpen(false);
   };
 
