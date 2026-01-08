@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, MessageCircle, Repeat, Send, MoreHorizontal, Play, Bookmark, X } from "lucide-react";
+import { Heart, MessageCircle, Repeat, Send, MoreHorizontal, Play, Pause, Volume2, VolumeX, Bookmark, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +28,7 @@ export interface Post {
   gradient?: string;
   emoji?: string;
   imageUrl?: string;
+  videoUrl?: string;
   isLiked?: boolean;
   isSaved?: boolean;
 }
@@ -55,8 +56,30 @@ export function PostCard({ post, index, onLike, onComment, onShare, onSave, onVo
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
-
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  
   const initials = post.username.split("_")[0].slice(0, 2).toUpperCase();
+
+  const handlePlayPause = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
 
   const handleLike = () => {
     setIsLikeAnimating(true);
@@ -96,15 +119,59 @@ export function PostCard({ post, index, onLike, onComment, onShare, onSave, onVo
         onDoubleClick={handleDoubleTapLike}
       >
         <Card className="border-0 shadow-card overflow-hidden aspect-[9/14] relative group cursor-pointer">
-          <div
-            className={`absolute inset-0 bg-gradient-to-br ${post.gradient} flex items-center justify-center`}
-          >
-            {post.emoji ? (
-              <span className="text-7xl">{post.emoji}</span>
-            ) : (
-              <Play className="w-16 h-16 text-white/80 group-hover:scale-110 transition-transform" />
-            )}
-          </div>
+          {/* Video or Gradient Background */}
+          {post.videoUrl ? (
+            <div className="absolute inset-0" onClick={handlePlayPause}>
+              <video
+                ref={videoRef}
+                src={post.videoUrl}
+                className="w-full h-full object-cover"
+                loop
+                muted={isMuted}
+                playsInline
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+              />
+              {/* Play/Pause Overlay */}
+              <AnimatePresence>
+                {!isPlaying && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 flex items-center justify-center bg-black/30"
+                  >
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
+                    >
+                      <Play className="w-8 h-8 text-white ml-1" />
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              {/* Mute Button */}
+              <motion.button
+                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center text-white z-20"
+                onClick={toggleMute}
+                whileTap={{ scale: 0.9 }}
+              >
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </motion.button>
+            </div>
+          ) : (
+            <div
+              className={`absolute inset-0 bg-gradient-to-br ${post.gradient} flex items-center justify-center`}
+              onClick={handlePlayPause}
+            >
+              {post.emoji ? (
+                <span className="text-7xl">{post.emoji}</span>
+              ) : (
+                <Play className="w-16 h-16 text-white/80 group-hover:scale-110 transition-transform" />
+              )}
+            </div>
+          )}
 
           {/* Like animation */}
           <AnimatePresence>
@@ -121,7 +188,7 @@ export function PostCard({ post, index, onLike, onComment, onShare, onSave, onVo
           </AnimatePresence>
 
           {/* Reel Actions */}
-          <div className="absolute right-3 bottom-28 flex flex-col gap-5 items-center">
+          <div className="absolute right-3 bottom-28 flex flex-col gap-5 items-center z-10">
             <motion.button 
               className="flex flex-col items-center text-white"
               onClick={handleLike}
@@ -149,7 +216,7 @@ export function PostCard({ post, index, onLike, onComment, onShare, onSave, onVo
           </div>
 
           {/* Reel Content */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-10">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-[10px] text-white font-bold border border-white">
                 {initials}
