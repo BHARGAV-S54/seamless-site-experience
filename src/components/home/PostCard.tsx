@@ -13,33 +13,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { Post as PostType } from "@/hooks/usePosts";
 
-export interface Post {
-  id: string;
-  type: "text" | "image" | "poll" | "reel";
-  username: string;
-  time: string;
-  tag: string;
-  content: string;
-  likes: number;
-  comments: Comment[];
-  shares: number;
-  pollOptions?: { label: string; percent: number; votes: number }[];
-  gradient?: string;
-  emoji?: string;
-  imageUrl?: string;
-  videoUrl?: string;
-  isLiked?: boolean;
-  isSaved?: boolean;
-}
-
-interface Comment {
-  id: string;
-  username: string;
-  text: string;
-  time: string;
-  likes: number;
-}
+// Re-export the Post type for backwards compatibility
+export type Post = PostType;
 
 interface PostCardProps {
   post: Post;
