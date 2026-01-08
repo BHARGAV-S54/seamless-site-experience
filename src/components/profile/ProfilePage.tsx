@@ -8,7 +8,8 @@ import { DashboardTab } from "./DashboardTab";
 import { AccountTab } from "./AccountTab";
 import { MyPostsTab } from "./MyPostsTab";
 import { SavedPostsTab } from "./SavedPostsTab";
-
+import { AvatarUpload } from "./AvatarUpload";
+import { useAuth } from "@/hooks/useAuth";
 interface ProfilePageProps {
   user: { name: string; email: string } | null;
   onEditProfile: () => void;
@@ -16,9 +17,13 @@ interface ProfilePageProps {
 }
 
 export function ProfilePage({ user, onEditProfile, onLogout }: ProfilePageProps) {
+  const { user: authUser, profile, refreshProfile } = useAuth();
   const userName = user?.name || "Student";
   const initials = userName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
+  const handleAvatarChange = (url: string) => {
+    refreshProfile?.();
+  };
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
       <div className="grid lg:grid-cols-[350px,1fr] gap-6">
@@ -35,8 +40,15 @@ export function ProfilePage({ user, onEditProfile, onLogout }: ProfilePageProps)
 
             {/* Avatar */}
             <div className="relative -mt-16 flex justify-center">
-              <div className="w-32 h-32 rounded-full border-4 border-game-gold bg-game-dark flex items-center justify-center text-5xl shadow-lg relative">
-                👤
+              <div className="relative">
+                {authUser && (
+                  <AvatarUpload
+                    userId={authUser.id}
+                    currentAvatarUrl={profile?.avatar_url || null}
+                    onAvatarChange={handleAvatarChange}
+                    initials={initials}
+                  />
+                )}
                 <div className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center border-2 border-game-dark shadow-lg">
                   <Crown className="w-5 h-5 text-white" />
                 </div>
