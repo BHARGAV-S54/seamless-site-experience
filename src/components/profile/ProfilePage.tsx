@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardTab } from "./DashboardTab";
 import { AccountTab } from "./AccountTab";
+import { MyPostsTab } from "./MyPostsTab";
 
 interface ProfilePageProps {
   user: { name: string; email: string } | null;
@@ -71,12 +72,16 @@ export function ProfilePage({ user, onEditProfile, onLogout }: ProfilePageProps)
           transition={{ delay: 0.1 }}
         >
           <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="w-full grid grid-cols-2 mb-6">
+            <TabsList className="w-full grid grid-cols-3 mb-6">
               <TabsTrigger value="dashboard" className="font-semibold">Dashboard</TabsTrigger>
+              <TabsTrigger value="myposts" className="font-semibold">My Posts</TabsTrigger>
               <TabsTrigger value="account" className="font-semibold">Account</TabsTrigger>
             </TabsList>
             <TabsContent value="dashboard">
               <DashboardTab />
+            </TabsContent>
+            <TabsContent value="myposts">
+              <MyPostsTab userName={userName} />
             </TabsContent>
             <TabsContent value="account">
               <AccountTab onLogout={onLogout || (() => {})} />
