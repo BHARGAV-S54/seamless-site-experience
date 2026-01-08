@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardTab } from "./DashboardTab";
 import { AccountTab } from "./AccountTab";
 import { MyPostsTab } from "./MyPostsTab";
+import { SavedPostsTab } from "./SavedPostsTab";
 
 interface ProfilePageProps {
   user: { name: string; email: string } | null;
@@ -72,9 +73,10 @@ export function ProfilePage({ user, onEditProfile, onLogout }: ProfilePageProps)
           transition={{ delay: 0.1 }}
         >
           <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="w-full grid grid-cols-3 mb-6">
+            <TabsList className="w-full grid grid-cols-4 mb-6">
               <TabsTrigger value="dashboard" className="font-semibold">Dashboard</TabsTrigger>
               <TabsTrigger value="myposts" className="font-semibold">My Posts</TabsTrigger>
+              <TabsTrigger value="saved" className="font-semibold">Saved</TabsTrigger>
               <TabsTrigger value="account" className="font-semibold">Account</TabsTrigger>
             </TabsList>
             <TabsContent value="dashboard">
@@ -82,6 +84,9 @@ export function ProfilePage({ user, onEditProfile, onLogout }: ProfilePageProps)
             </TabsContent>
             <TabsContent value="myposts">
               <MyPostsTab userName={userName} />
+            </TabsContent>
+            <TabsContent value="saved">
+              <SavedPostsTab />
             </TabsContent>
             <TabsContent value="account">
               <AccountTab onLogout={onLogout || (() => {})} />
