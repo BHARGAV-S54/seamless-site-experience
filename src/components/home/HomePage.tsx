@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { StoriesBar } from "./StoriesBar";
 import { PostComposer, NewPost } from "./PostComposer";
@@ -6,6 +6,7 @@ import { PostCard, Post } from "./PostCard";
 import { TrendingSidebar } from "./TrendingSidebar";
 import { SearchBar } from "./SearchBar";
 import { toast } from "sonner";
+import { getUserPosts, saveUserPost, deleteUserPost } from "@/lib/postsStore";
 
 const initialPosts: Post[] = [
   {
@@ -106,7 +107,17 @@ interface HomePageProps {
 }
 
 export function HomePage({ userName = "Student" }: HomePageProps) {
-  const [posts, setPosts] = useState<Post[]>(initialPosts);
+  const [posts, setPosts] = useState<Post[]>(() => {
+    // Load user posts from localStorage and merge with initial posts
+    const userPosts = getUserPosts();
+    return [...userPosts, ...initialPosts];
+  });
+
+  // Re-sync with localStorage when component mounts
+  useEffect(() => {
+    const userPosts = getUserPosts();
+    setPosts([...userPosts, ...initialPosts]);
+  }, []);
 
   const handleNewPost = (newPost: NewPost) => {
     const post: Post = {
@@ -128,6 +139,8 @@ export function HomePage({ userName = "Student" }: HomePageProps) {
       isLiked: false,
       isSaved: false,
     };
+    // Save to localStorage
+    saveUserPost(post);
     setPosts([post, ...posts]);
     toast.success("Post shared successfully! 🎉");
   };
@@ -208,6 +221,7 @@ export function HomePage({ userName = "Student" }: HomePageProps) {
   };
 
   const handleDelete = (postId: string) => {
+    deleteUserPost(postId);
     setPosts(posts.filter(post => post.id !== postId));
     toast.success("Post deleted");
   };
