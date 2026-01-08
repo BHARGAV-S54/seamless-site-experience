@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Header } from "@/components/layout/Header";
 import { LoginPage } from "@/components/auth/LoginPage";
@@ -9,12 +9,8 @@ import { ProfilePage } from "@/components/profile/ProfilePage";
 import { AIChatbot } from "@/components/chat/AIChatbot";
 import { EducatorDashboard } from "@/components/educator/EducatorDashboard";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
-
-interface User {
-  name: string;
-  email: string;
-  role: string;
-}
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2 } from "lucide-react";
 
 const pageVariants = {
   initial: { opacity: 0, y: 10 },
@@ -23,84 +19,83 @@ const pageVariants = {
 };
 
 const Index = () => {
-  const [activeSection, setActiveSection] = useState("login");
-  const [user, setUser] = useState<User | null>(null);
+  const { user, profile, role, loading, signOut } = useAuth();
+  const [activeSection, setActiveSection] = useState("home");
 
-  useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem("sh_user");
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser);
-        setUser(parsed);
-        setActiveSection("home");
-      } catch {
-        localStorage.removeItem("sh_user");
-      }
-    }
-  }, []);
-
-  const handleLogin = (newUser: User) => {
-    setUser(newUser);
-    localStorage.setItem("sh_user", JSON.stringify(newUser));
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem("sh_user");
-    setActiveSection("login");
+  const handleLogout = async () => {
+    await signOut();
   };
 
   const handleNavigate = (section: string) => {
-    // Protected routes check
-    const protectedSections = ["home", "learn", "social", "profile"];
-    if (protectedSections.includes(section) && !user) {
-      setActiveSection("login");
-      return;
-    }
     setActiveSection(section);
+  };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login page if not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <LoginPage />
+      </div>
+    );
+  }
+
+  // User object for components
+  const userObj = {
+    name: profile?.full_name || user.email?.split("@")[0] || "User",
+    email: user.email || "",
+    role: role || "student",
   };
 
   const renderSection = () => {
     // Role-based routing for educator and admin
-    if (user?.role === "educator") {
-      return <EducatorDashboard user={user} onLogout={handleLogout} />;
+    if (role === "educator") {
+      return <EducatorDashboard user={userObj} onLogout={handleLogout} />;
     }
-    if (user?.role === "admin") {
-      return <AdminDashboard user={user} onLogout={handleLogout} />;
+    if (role === "admin") {
+      return <AdminDashboard user={userObj} onLogout={handleLogout} />;
     }
 
     // Student routes
     switch (activeSection) {
-      case "login":
-        return <LoginPage onLogin={handleLogin} onNavigate={handleNavigate} />;
       case "home":
-        return <HomePage userName={user?.name} />;
+        return <HomePage userName={userObj.name} />;
       case "learn":
         return <LearnPage />;
       case "social":
         return <SocialPage />;
       case "profile":
-        return <ProfilePage user={user} onEditProfile={() => {}} onLogout={handleLogout} />;
+        return <ProfilePage user={userObj} onEditProfile={() => {}} onLogout={handleLogout} />;
       default:
-        return <HomePage userName={user?.name} />;
+        return <HomePage userName={userObj.name} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header - visible only for students */}
-      {user?.role === "student" && activeSection !== "login" && (
+      {role === "student" && (
         <Header
           activeSection={activeSection}
           onNavigate={handleNavigate}
-          user={user}
+          user={userObj}
           onLogout={handleLogout}
         />
       )}
 
       {/* Main Content */}
-      <main className={`${user?.role === "student" && activeSection !== "login" ? "pt-0 md:pt-20 pb-20 md:pb-4" : ""}`}>
+      <main className={`${role === "student" ? "pt-0 md:pt-20 pb-20 md:pb-4" : ""}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeSection}
@@ -116,7 +111,7 @@ const Index = () => {
       </main>
 
       {/* AI Chatbot - visible only for students when logged in */}
-      {user && user.role === "student" && activeSection !== "login" && <AIChatbot />}
+      {role === "student" && <AIChatbot />}
     </div>
   );
 };

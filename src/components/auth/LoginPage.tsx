@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { GraduationCap, Eye, EyeOff, User, BookOpen, Shield } from "lucide-react";
+import { GraduationCap, Eye, EyeOff, User, BookOpen, Shield, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,16 +12,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/hooks/useAuth";
+import { z } from "zod";
 
-interface LoginPageProps {
-  onLogin: (user: { name: string; email: string; role: string }) => void;
-  onNavigate: (section: string) => void;
-}
+const signUpSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters").max(100),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
 
-export function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
+const signInSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+export function LoginPage() {
+  const { signIn, signUp } = useAuth();
   const [isSignup, setIsSignup] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<string>("student");
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -29,29 +39,57 @@ export function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
   });
   const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
-    if (isSignup) {
-      if (!formData.name || !formData.email || formData.password.length < 4) {
-        setError("Please fill all fields (password min 4 chars)");
-        return;
+    try {
+      if (isSignup) {
+        const validation = signUpSchema.safeParse(formData);
+        if (!validation.success) {
+          setError(validation.error.errors[0].message);
+          setLoading(false);
+          return;
+        }
+
+        const { error } = await signUp(
+          formData.email,
+          formData.password,
+          formData.name,
+          role
+        );
+
+        if (error) {
+          if (error.message.includes("already registered")) {
+            setError("This email is already registered. Please sign in instead.");
+          } else {
+            setError(error.message);
+          }
+        }
+      } else {
+        const validation = signInSchema.safeParse(formData);
+        if (!validation.success) {
+          setError(validation.error.errors[0].message);
+          setLoading(false);
+          return;
+        }
+
+        const { error } = await signIn(formData.email, formData.password);
+
+        if (error) {
+          if (error.message.includes("Invalid login credentials")) {
+            setError("Invalid email or password. Please try again.");
+          } else {
+            setError(error.message);
+          }
+        }
       }
-    } else {
-      if (!formData.email || !formData.password) {
-        setError("Please enter email and password");
-        return;
-      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    // Simulate login/signup
-    onLogin({
-      name: formData.name || formData.email.split("@")[0],
-      email: formData.email,
-      role: role,
-    });
-    onNavigate("home");
   };
 
   return (
@@ -115,35 +153,37 @@ export function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Role Selection */}
-                <div className="space-y-2">
-                  <Label htmlFor="role">I am a</Label>
-                  <Select value={role} onValueChange={setRole}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select your role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="student">
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4" />
-                          <span>Student</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="educator">
-                        <div className="flex items-center gap-2">
-                          <BookOpen className="w-4 h-4" />
-                          <span>Educator</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="admin">
-                        <div className="flex items-center gap-2">
-                          <Shield className="w-4 h-4" />
-                          <span>Admin</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* Role Selection - Only for signup */}
+                {isSignup && (
+                  <div className="space-y-2">
+                    <Label htmlFor="role">I am a</Label>
+                    <Select value={role} onValueChange={setRole}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select your role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="student">
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4" />
+                            <span>Student</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="educator">
+                          <div className="flex items-center gap-2">
+                            <BookOpen className="w-4 h-4" />
+                            <span>Educator</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="admin">
+                          <div className="flex items-center gap-2">
+                            <Shield className="w-4 h-4" />
+                            <span>Admin</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 {isSignup && (
                   <div className="space-y-2">
@@ -153,6 +193,7 @@ export function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
                       placeholder="John Doe"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      disabled={loading}
                     />
                   </div>
                 )}
@@ -165,6 +206,7 @@ export function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
                     placeholder="you@example.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    disabled={loading}
                   />
                 </div>
 
@@ -178,6 +220,7 @@ export function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       className="pr-10"
+                      disabled={loading}
                     />
                     <button
                       type="button"
@@ -195,27 +238,31 @@ export function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
                   </p>
                 )}
 
-                <Button type="submit" className="w-full gradient-primary text-primary-foreground shadow-glow">
-                  {isSignup ? "Create Account" : "Sign In"}
+                <Button 
+                  type="submit" 
+                  className="w-full gradient-primary text-primary-foreground shadow-glow"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      {isSignup ? "Creating Account..." : "Signing In..."}
+                    </>
+                  ) : (
+                    isSignup ? "Create Account" : "Sign In"
+                  )}
                 </Button>
-
-                <div className="flex items-center gap-2 my-4">
-                  <div className="flex-1 h-px bg-border" />
-                  <span className="text-xs text-muted-foreground">Or continue with</span>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline" type="button">Google</Button>
-                  <Button variant="outline" type="button">GitHub</Button>
-                </div>
 
                 <p className="text-center text-sm text-muted-foreground">
                   {isSignup ? "Already have an account? " : "Don't have an account? "}
                   <button
                     type="button"
                     className="text-primary font-semibold hover:underline"
-                    onClick={() => setIsSignup(!isSignup)}
+                    onClick={() => {
+                      setIsSignup(!isSignup);
+                      setError("");
+                    }}
+                    disabled={loading}
                   >
                     {isSignup ? "Sign in" : "Sign up"}
                   </button>
