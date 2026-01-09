@@ -34,7 +34,7 @@ export function Header({ activeSection, onNavigate, user, onLogout }: HeaderProp
             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-glow">
               <GraduationCap className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-gradient">StudentHub AI</span>
+            <span className="text-xl font-bold text-gradient">EduNest</span>
           </motion.div>
 
           <ul className="flex items-center gap-2">
