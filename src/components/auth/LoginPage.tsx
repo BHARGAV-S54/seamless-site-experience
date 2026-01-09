@@ -108,7 +108,7 @@ export function LoginPage() {
           >
             <GraduationCap className="w-10 h-10 text-primary-foreground" />
           </motion.div>
-          <h1 className="text-3xl font-bold mb-4">Welcome to StudentHub</h1>
+          <h1 className="text-3xl font-bold mb-4">Welcome to EduNest</h1>
           <p className="text-muted-foreground mb-6">
             Smart study tools, a friendly community, and gamified progress to keep you motivated. 
             Sign in to access chats, your dashboard, and personalized study plans.
@@ -140,7 +140,7 @@ export function LoginPage() {
                 <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shadow-glow">
                   <GraduationCap className="w-6 h-6 text-primary-foreground" />
                 </div>
-                <span className="text-xl font-bold text-gradient">StudentHub AI</span>
+                <span className="text-xl font-bold text-gradient">EduNest</span>
               </motion.div>
 
               <h2 className="text-xl font-bold mb-2">
@@ -148,7 +148,7 @@ export function LoginPage() {
               </h2>
               <p className="text-muted-foreground text-sm mb-6">
                 {isSignup
-                  ? "Join StudentHub to access community notes and study plans."
+                  ? "Join EduNest to access community notes and study plans."
                   : "Enter your credentials to continue."}
               </p>
 
