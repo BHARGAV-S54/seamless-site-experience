@@ -1,24 +1,34 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, X, Sparkles, Send, Maximize2, Minimize2 } from "lucide-react";
+import { Bot, X, Sparkles, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
 
-const initialMessages = [
+interface Message {
+  id: number;
+  type: "user" | "bot";
+  text: string;
+}
+
+const initialMessages: Message[] = [
   {
     id: 1,
     type: "bot",
-    text: "Hello! I'm your AI academic assistant. I can help with:\n• Explaining concepts\n• Finding previous papers\n• Study schedules\n\nHow can I help you today?",
+    text: "Hello! I'm your AI academic assistant. I can help with:\n• Explaining concepts\n• Finding study resources\n• Study schedules\n\nHow can I help you today?",
   },
 ];
 
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+
 export function AIChatbot() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState(initialMessages);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -28,30 +38,134 @@ export function AIChatbot() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
-    const userMessage = { id: Date.now(), type: "user", text: input };
+  const handleSend = async () => {
+    if (!input.trim() || isTyping) return;
+
+    const userMessage: Message = { id: Date.now(), type: "user", text: input };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsTyping(true);
 
-    setTimeout(() => {
-      const text = input.toLowerCase();
-      let reply = "I can help you with that! Could you be more specific?";
-      
-      if (text.includes("math") || text.includes("calc")) {
-        reply = "For Calculus, I recommend focusing on Integration by Parts today. Would you like practice problems?";
-      } else if (text.includes("exam")) {
-        reply = "Your finals start next week. Check the Dashboard for the schedule! Want me to create a study plan?";
-      } else if (text.includes("hello") || text.includes("hi")) {
-        reply = "Hi there! Ready to study? What subject do you need help with?";
-      } else if (text.includes("note") || text.includes("pdf")) {
-        reply = "I found some great notes on that topic! Check the Learn section for Materials.";
+    // Build conversation history for AI
+    const conversationHistory = messages
+      .filter((m) => m.id !== 1) // Skip initial bot message
+      .map((m) => ({
+        role: m.type === "user" ? "user" : "assistant",
+        content: m.text,
+      }));
+    conversationHistory.push({ role: "user", content: input });
+
+    let assistantText = "";
+
+    try {
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ messages: conversationHistory }),
+      });
+
+      if (!resp.ok) {
+        const errorData = await resp.json().catch(() => ({}));
+        throw new Error(errorData.error || `Request failed with status ${resp.status}`);
       }
 
+      if (!resp.body) throw new Error("No response body");
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let streamDone = false;
+      const assistantMsgId = Date.now() + 1;
+
+      // Add empty assistant message to start
+      setMessages((prev) => [...prev, { id: assistantMsgId, type: "bot", text: "" }]);
+
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") {
+            streamDone = true;
+            break;
+          }
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantText += content;
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId ? { ...m, text: assistantText } : m
+                )
+              );
+            }
+          } catch {
+            // Incomplete JSON, put it back
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+
+      // Final flush
+      if (textBuffer.trim()) {
+        for (let raw of textBuffer.split("\n")) {
+          if (!raw) continue;
+          if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+          if (raw.startsWith(":") || raw.trim() === "") continue;
+          if (!raw.startsWith("data: ")) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantText += content;
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId ? { ...m, text: assistantText } : m
+                )
+              );
+            }
+          } catch {
+            /* ignore partial leftovers */
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Chat error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to get response",
+        variant: "destructive",
+      });
+      // Add error message
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          type: "bot",
+          text: "Sorry, I'm having trouble connecting right now. Please try again in a moment.",
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-      setMessages((prev) => [...prev, { id: Date.now() + 1, type: "bot", text: reply }]);
-    }, 1200);
+    }
   };
 
   return (
@@ -146,7 +260,7 @@ export function AIChatbot() {
                 ))}
 
                 {/* Typing indicator */}
-                {isTyping && (
+                {isTyping && messages[messages.length - 1]?.type !== "bot" && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -182,12 +296,13 @@ export function AIChatbot() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleSend()}
                   className="flex-1 h-12 md:h-14 rounded-xl text-base px-5"
+                  disabled={isTyping}
                 />
                 <Button
                   size="icon"
                   className="gradient-primary text-primary-foreground rounded-xl h-12 w-12 md:h-14 md:w-14 shadow-glow"
                   onClick={handleSend}
-                  disabled={!input.trim()}
+                  disabled={!input.trim() || isTyping}
                 >
                   <Send className="w-5 h-5" />
                 </Button>
